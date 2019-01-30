@@ -318,7 +318,6 @@ void owPhysicsFluidSimulator::genShellPaticlesList() {
     for (size_t i = 0; i < config->getParticleCount(); ++i) {
         p_type = (float)position_cpp[4*i + 3];
         if (p_type > 2 && p_type < 2.29) { // does not work with < 2.3?
-        std::cout << p_type << std::endl;
             shellIndexes.push_back(i);
         }
     }
