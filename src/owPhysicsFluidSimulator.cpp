@@ -314,6 +314,7 @@ int update_worm_motion_log_file(
 /** Gen list of particles in shell
  */
 void owPhysicsFluidSimulator::genShellPaticlesList() {
+    // TODO: Only add particles from outer shell.
     float p_type = -1;
     for (size_t i = 0; i < config->getParticleCount(); ++i) {
         p_type = (float)position_cpp[4*i + 3];

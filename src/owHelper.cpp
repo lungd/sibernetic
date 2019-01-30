@@ -468,7 +468,7 @@ void owHelper::loadConfigurationToFile(float *position,
 }
 
 
-// TODO: create hashmap<int,string> with sections as defined in config during owHelper initialization?
+// TODO: create hashmap<int,string> 'sectionMap' with sections as defined in config during owHelper initialization?
 /*std::string owHelper::getSectionName(int id) {
     return sectionMap[id];
 }*/
@@ -510,11 +510,14 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
   float y;
   float z;
   float p_type;
+  float p_pressure;
   bool writeIteration = true;
 
   pressureFile << "[Iteration " << iteration << "]\n";
   for (int i = 0; i < shell_particles.size(); ++i) {
     id = shell_particles[i];
+    p_pressure = pressure_buffer[id];
+
     x = position_buffer[id * 4 + 0];
     y = position_buffer[id * 4 + 1];
     z = position_buffer[id * 4 + 2];
@@ -526,21 +529,23 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
                  << y << "\t"
                  << z << "\t"
                  << p_type << "\n";
-    pressureFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
+    pressureFile << "\tPressure:\t" << p_pressure << "\n";
 
-    if (pressure_buffer[id] >= threshold) {
+    if (p_pressure >= threshold) {
         if (writeIteration) {
             sectiontouchFile << "[Iteration " << iteration << "]\n";
             writeIteration = false;
         }
         // TODO: std::string sectionName = getSectionName(id);
-        // TODO: sectiontouchFile << "[ " << sectionName << "]\n";
+        //       sectiontouchFile << "[ " << sectionName << "]\n";
+        //       'inform' SensoryManager.py - invoke sensoryManager.receivePressure(sectionName, p_pressure)
+        //       inside receivePressure load neuron list based on sectionName and change/add input to neurons based on p_pressure
         sectiontouchFile << id << "\t"
                          << x << "\t" 
                          << y << "\t" 
                          << z << "\t" 
                          << p_type << "\t" 
-                         << pressure_buffer[id] << "\n";
+                         << p_pressure << "\n";
         
         /*sectiontouchFile << "Particle:\t" << id << "\n";
         sectiontouchFile << "\tPosition:\t";
