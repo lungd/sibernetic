@@ -496,33 +496,49 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
       throw std::runtime_error("There was a problem with creation of sectiontouch "
                                "file for logging Check the path.");
   }
-  pressureFile << "[Iteration " << iteration << "]\n";
+
+  float threshold = 100.0; // TODO: move threshold to configuration?
+  int id;
+  float x;
+  float y;
+  float z;
+  float p_type;
   bool writeIteration = true;
+
+  pressureFile << "[Iteration " << iteration << "]\n";
   for (int i = 0; i < shell_particles.size(); ++i) {
-    int id = shell_particles[i];
+    id = shell_particles[i];
+    x = position_buffer[id * 4 + 0];
+    y = position_buffer[id * 4 + 1];
+    z = position_buffer[id * 4 + 2];
+    p_type = position_buffer[id * 4 + 3];
     pressureFile << "Particle:\t" << id << "\n";
     pressureFile << "\tPosition:\t";
-    pressureFile << position_buffer[id * 4 + 0] << "\t"
-                 << position_buffer[id * 4 + 1] << "\t"
-                 << position_buffer[id * 4 + 2] << "\t"
-                 << position_buffer[id * 4 + 3] << "\n";
+    pressureFile << x << "\t"
+                 << y << "\t"
+                 << z << "\t"
+                 << p_type << "\n";
     pressureFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
 
-    float p_type = position_buffer[id * 4 + 3];
-    if ((pressure_buffer[id] > 100) && (p_type > 2 && p_type <= 2.25)) {
-        // if pressure > threshold && particle belongs to worm
-        // not all of the shell_particles seem to be belonging to the worm
+    if (pressure_buffer[id] > threshold) {
         if (writeIteration) {
             sectiontouchFile << "[Iteration " << iteration << "]\n";
             writeIteration = false;
         }
-        sectiontouchFile << "Particle:\t" << id << "\n";
+        sectiontouchFile << id << "\t"
+                         << x << "\t" 
+                         << y << "\t" 
+                         << z << "\t" 
+                         << p_type << "\t" 
+                         << pressure_buffer[id] << "\n";
+        
+        /*sectiontouchFile << "Particle:\t" << id << "\n";
         sectiontouchFile << "\tPosition:\t";
         sectiontouchFile << position_buffer[id * 4 + 0] << "\t"
                      << position_buffer[id * 4 + 1] << "\t"
                      << position_buffer[id * 4 + 2] << "\t"
                      << position_buffer[id * 4 + 3] << "\n";
-        sectiontouchFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
+        sectiontouchFile << "\tPressure:\t" << pressure_buffer[id] << "\n";*/
     }
   }
   pressureFile.close();
