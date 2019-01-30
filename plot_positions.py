@@ -80,7 +80,7 @@ def plot_positions(pos_file_name, rate_to_plot = 100, save_figure=True, show_plo
             if plot_frame:
                 w = line.split()
                 m = float(w[3])
-                if m>2 and m<3:
+                if m>2 and m<2.3:
                     x = float(w[0])
                     y = float(w[1])
                     z = float(w[2])
