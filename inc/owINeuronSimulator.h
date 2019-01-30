@@ -55,8 +55,10 @@ protected:
 		return test;
 	}
 	PyObject *pName, *pModule, *pDict, *pFunc, *pValue, *pClass, *pInstance, * nrn_sim;
+    PyObject *pNameSensory, *pModuleSensory, *pClassSensory, *pInstanceSensory;
 public:
 	virtual std::vector<float> run() = 0;
+    virtual void receivePressure(int id, float p_type, float p_pressure){};
 	virtual ~owINeuronSimulator(){}
 };
 

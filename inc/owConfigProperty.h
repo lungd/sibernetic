@@ -166,6 +166,8 @@ public:
   uint numOfBoundaryP;
   uint numOfMembranes;
   uint MUSCLE_COUNT;
+  // SignalSimulator simulation;
+  owINeuronSimulator *simulation;
 
 private:
   /** Calculating delta parameter.
@@ -243,8 +245,6 @@ private:
   std::string configFileName;
   std::string path;     // PATH to configuration files
   std::string loadPath; // PATH to load buffer files
-  // SignalSimulator simulation;
-  owINeuronSimulator *simulation;
   std::string devFullName;
   std::string sourceFileName;
   bool nrnSimRun; // indicates if we also run NEURON simulation

@@ -55,15 +55,24 @@ SignalSimulator::SignalSimulator(const std::string &simFileName,
   // Initialize the Python interpreter
   Py_Initialize();
   PyObject *pName;
+  PyObject *pNameSensory;
   // Convert the file name to a Python string.
   pName = PyString_FromString(simFileName.c_str());
+  pNameSensory = PyString_FromString("sensory_manager");
   const char *s = PyString_AsString(pName);
-  printf("[debug] pName = \"%s\"\n", s);
+  const char *sSensory = PyString_AsString(pNameSensory);
+  
   const char *s2 = Py_GetPath();
   printf("[debug] PyPath = \"%s\"\n", s2);
 
   // Import the file as a Python module.
+  printf("[debug] pName = \"%s\"\n", s);
   pModule = PyImport_Import(pName);
+  if (PyErr_Occurred())
+    PyErr_Print();
+
+  printf("[debug] pNameSensory = \"%s\"\n", sSensory);
+  pModuleSensory = PyImport_Import(pNameSensory);
   if (PyErr_Occurred())
     PyErr_Print();
 
@@ -74,6 +83,16 @@ SignalSimulator::SignalSimulator(const std::string &simFileName,
       PyErr_Print();
   } else {
     throw std::runtime_error("Python module not loaded, have you set "
+                             "PYTHONPATH?\nTry: \n\n   export "
+                             "PYTHONPATH=$PYTHONPATH:./src\n");
+  }
+
+  if (pModuleSensory != nullptr) {
+    pClassSensory = PyObject_GetAttrString(pModuleSensory, "SensoryManager");
+    if (PyErr_Occurred())
+      PyErr_Print();
+  } else {
+    throw std::runtime_error("Sensory Python module not loaded, have you set "
                              "PYTHONPATH?\nTry: \n\n   export "
                              "PYTHONPATH=$PYTHONPATH:./src\n");
   }
@@ -97,6 +116,34 @@ SignalSimulator::SignalSimulator(const std::string &simFileName,
                              "callable! Try: export "
                              "PYTHONPATH=$PYTHONPATH:./src");
   }
+
+  if (PyCallable_Check(pClassSensory)) {
+    pInstanceSensory = PyObject_CallObject(pClassSensory, nullptr);
+    if (PyErr_Occurred())
+      PyErr_Print();
+    
+  } else {
+    throw std::runtime_error("Python sensory manager class not "
+                             "callable! Try: export "
+                             "PYTHONPATH=$PYTHONPATH:./src");
+  }
+
+}
+
+
+void SignalSimulator::receivePressure(int id, float p_type, float p_pressure) {
+    std::cout << "signalSimulator received pressure" << std::endl;
+    PyObject *funcName = Py_BuildValue("s", "applyPressure");
+    PyObject *p_id = Py_BuildValue("i", id);
+    PyObject *pressure = Py_BuildValue("f", p_pressure);
+    
+    PyObject_CallMethodObjArgs(pInstanceSensory, funcName, p_id, pressure, pInstance, nullptr);
+    if (PyErr_Occurred()) {
+        PyErr_Print();
+    }
+    Py_DECREF(funcName);
+    Py_DECREF(p_id);
+    Py_DECREF(pressure);
 }
 
 std::vector<float> SignalSimulator::run() {

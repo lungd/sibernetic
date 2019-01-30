@@ -123,6 +123,9 @@ class MuscleSimulation():
     def set_timestep(self, dt):
         pass
 
+    def addStimulus(self, sectionName, pressure): # TODO: check if needed
+        pass
+
     def run(self, skip_to_time=0, do_plot = True):
         self.contraction_array =  parallel_waves(step = self.step)
         self.step += self.increment
@@ -170,6 +173,12 @@ class C302NRNSimulation():
         self.ns = NeuronSimulation(self.tstop, dt)
         print_("Initialised C302NRNSimulation of length %s ms and dt = %s ms..."%(self.tstop,dt))
         
+    
+    """def addStimulus(self, sectionName, pressure):
+        i = self.ns.h.IClamp(section(0.5))
+        i.delay = 0    # in ms
+        i.dur = 0.005  # (dt) in ms
+        i.amp = 20     # in ?"""
         
     def save_results(self):
         

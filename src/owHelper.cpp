@@ -504,7 +504,7 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
                                "file for logging Check the path.");
   }
 
-  float threshold = 100.0; // TODO: move threshold to configuration?
+  float threshold = 1.0; // TODO: move threshold to configuration?
   int id;
   float x;
   float y;
@@ -540,6 +540,9 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
         //       sectiontouchFile << "[ " << sectionName << "]\n";
         //       'inform' SensoryManager.py - invoke sensoryManager.receivePressure(sectionName, p_pressure)
         //       inside receivePressure load neuron list based on sectionName and change/add input to neurons based on p_pressure
+
+        config->simulation->receivePressure(id, p_type, p_pressure);
+
         sectiontouchFile << id << "\t"
                          << x << "\t" 
                          << y << "\t" 
