@@ -314,7 +314,15 @@ int update_worm_motion_log_file(
 /** Gen list of particles in shell
  */
 void owPhysicsFluidSimulator::genShellPaticlesList() {
-  for (size_t i = 0; i < config->numOfElasticP; ++i) {
+    float p_type = -1;
+    for (size_t i = 0; i < config->getParticleCount(); ++i) {
+        p_type = (float)position_cpp[4*i + 3];
+        if (p_type > 2 && p_type < 2.29) { // does not work with < 2.3?
+        std::cout << p_type << std::endl;
+            shellIndexes.push_back(i);
+        }
+    }
+    /*for (size_t i = 0; i < config->numOfElasticP; ++i) {
     for (size_t j = 0; j < MAX_MEMBRANES_INCLUDING_SAME_PARTICLE; ++j) {
       if (particleMembranesList_cpp[i * MAX_MEMBRANES_INCLUDING_SAME_PARTICLE +
                                     j] != -1) {
@@ -322,7 +330,7 @@ void owPhysicsFluidSimulator::genShellPaticlesList() {
         break;
       }
     }
-  }
+  }*/
 }
 
 /** Run one simulation step
