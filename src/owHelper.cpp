@@ -473,20 +473,31 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
                                   int iteration, owConfigProperty * config)
 {
   std::ofstream pressureFile;
+  std::ofstream sectiontouchFile;
   std::string pressureFileName =
       config->getLoadPath() + std::string("/pressure_buffer.txt");
+  std::string sectiontouchFileName = config->getLoadPath() + std::string("/sectiontouch.txt");
   if (!iteration) {
     pressureFile.open(pressureFileName.c_str(), std::ofstream::trunc);
+    sectiontouchFile.open(sectiontouchFileName.c_str(), std::ofstream::trunc);
     if (!pressureFile)
       throw std::runtime_error("There was a problem with creation of position "
                                "file for logging check the path.");
+    if (!sectiontouchFile)
+      throw std::runtime_error("There was a problem with creation of sectiontouch "
+                               "file for logging check the path.");
   } else {
     pressureFile.open(pressureFileName.c_str(), std::ofstream::app);
+    sectiontouchFile.open(sectiontouchFileName.c_str(), std::ofstream::app);
     if (!pressureFile)
       throw std::runtime_error("There was a problem with creation of position "
                                "file for logging Check the path.");
+    if (!sectiontouchFile)
+      throw std::runtime_error("There was a problem with creation of sectiontouch "
+                               "file for logging Check the path.");
   }
   pressureFile << "[Iteration " << iteration << "]\n";
+  bool writeIteration = true;
   for (int i = 0; i < shell_particles.size(); ++i) {
     int id = shell_particles[i];
     pressureFile << "Particle:\t" << id << "\n";
@@ -496,8 +507,26 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
                  << position_buffer[id * 4 + 2] << "\t"
                  << position_buffer[id * 4 + 3] << "\n";
     pressureFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
+
+    float p_type = position_buffer[id * 4 + 3];
+    if ((pressure_buffer[id] > 100) && (p_type > 2 && p_type <= 2.25)) {
+        // if pressure > threshold && particle belongs to worm
+        // not all of the shell_particles seem to be belonging to the worm
+        if (writeIteration) {
+            sectiontouchFile << "[Iteration " << iteration << "]\n";
+            writeIteration = false;
+        }
+        sectiontouchFile << "Particle:\t" << id << "\n";
+        sectiontouchFile << "\tPosition:\t";
+        sectiontouchFile << position_buffer[id * 4 + 0] << "\t"
+                     << position_buffer[id * 4 + 1] << "\t"
+                     << position_buffer[id * 4 + 2] << "\t"
+                     << position_buffer[id * 4 + 3] << "\n";
+        sectiontouchFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
+    }
   }
   pressureFile.close();
+  sectiontouchFile.close();
 }
 /** Load configuration from simulation to files
  *
