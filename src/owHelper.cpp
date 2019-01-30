@@ -467,6 +467,13 @@ void owHelper::loadConfigurationToFile(float *position,
   }
 }
 
+
+// TODO: create hashmap<int,string> with sections as defined in config during owHelper initialization?
+/*std::string owHelper::getSectionName(int id) {
+    return sectionMap[id];
+}*/
+
+
 void owHelper::loadPressureToFile(float *pressure_buffer,
                                   std::vector<size_t> & shell_particles,
                                   float *position_buffer,
@@ -512,6 +519,7 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
     y = position_buffer[id * 4 + 1];
     z = position_buffer[id * 4 + 2];
     p_type = position_buffer[id * 4 + 3];
+
     pressureFile << "Particle:\t" << id << "\n";
     pressureFile << "\tPosition:\t";
     pressureFile << x << "\t"
@@ -520,11 +528,13 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
                  << p_type << "\n";
     pressureFile << "\tPressure:\t" << pressure_buffer[id] << "\n";
 
-    if (pressure_buffer[id] > threshold) {
+    if (pressure_buffer[id] >= threshold) {
         if (writeIteration) {
             sectiontouchFile << "[Iteration " << iteration << "]\n";
             writeIteration = false;
         }
+        // TODO: std::string sectionName = getSectionName(id);
+        // TODO: sectiontouchFile << "[ " << sectionName << "]\n";
         sectiontouchFile << id << "\t"
                          << x << "\t" 
                          << y << "\t" 
