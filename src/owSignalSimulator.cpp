@@ -101,14 +101,24 @@ SignalSimulator::SignalSimulator(const std::string &simFileName,
     pInstance = PyObject_CallObject(pClass, nullptr);
     if (PyErr_Occurred())
       PyErr_Print();
-    PyObject *dt = Py_BuildValue("f", timeStep); // Create tuple of arguments for initialization
-    PyObject *pFuncName = Py_BuildValue("s", "set_timestep");
+
+    PyObject *pFuncName = Py_BuildValue("s", "set_sim_dir");
+    /*PyObject *psim_dir = Py_BuildValue("s", sim_dir);
+    PyObject_CallMethodObjArgs(pInstance, pFuncName, psim_dir, nullptr);
+    if (PyErr_Occurred())
+      PyErr_Print();
+    Py_DECREF(psim_dir);*/
+    Py_DECREF(pFuncName);
+
+    pFuncName = Py_BuildValue("s", "set_timestep");
+    PyObject *dt = Py_BuildValue("f", timeStep);
     //pInstance = PyObject_CallMethod(pInstance, "set_timestep", "(f)", timeStep);
     PyObject_CallMethodObjArgs(pInstance, pFuncName, dt, nullptr);
     if (PyErr_Occurred())
       PyErr_Print();
     Py_DECREF(dt);
     Py_DECREF(pFuncName);
+
     std::cout << "Python muscle signal generator class: " << simClassName
               << " loaded!" << std::endl;
   } else {

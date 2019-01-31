@@ -512,8 +512,11 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
   float p_type;
   float p_pressure;
   bool writeIteration = true;
+  bool received = false;
 
   pressureFile << "[Iteration " << iteration << "]\n";
+
+
   for (int i = 0; i < shell_particles.size(); ++i) {
     id = shell_particles[i];
     p_pressure = pressure_buffer[id];
@@ -540,9 +543,10 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
         //       sectiontouchFile << "[ " << sectionName << "]\n";
         //       'inform' SensoryManager.py - invoke sensoryManager.receivePressure(sectionName, p_pressure)
         //       inside receivePressure load neuron list based on sectionName and change/add input to neurons based on p_pressure
-
-        config->simulation->receivePressure(id, p_type, p_pressure);
-
+        if (!received) {
+            config->simulation->receivePressure(id, p_type, p_pressure);
+            received = true;
+        }
         sectiontouchFile << id << "\t"
                          << x << "\t" 
                          << y << "\t" 

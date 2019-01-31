@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import sys
-
+import os
 
 muscle_row_count = 24
 
@@ -125,6 +125,8 @@ class MuscleSimulation():
 
     def addStimulus(self, sectionName, pressure): # TODO: check if needed
         pass
+    def set_sim_dir(self, sim_dir):
+        pass
 
     def run(self, skip_to_time=0, do_plot = True):
         self.contraction_array =  parallel_waves(step = self.step)
@@ -150,21 +152,65 @@ class C302NRNSimulation():
     max_ca = 4e-7
     max_ca_found = -1
     
-    def __init__(self, tstop=100, dt=0.005, activity_file=None, verbose=True):
+    def __init__(self, tstop=100, dt=0.005, activity_file=None, verbose=True, sim_dir=None):
         
         #from LEMS_c302_C1_Full_nrn import NeuronSimulation
         #from LEMS_c302_nrn import NeuronSimulation
         
         #import neuron
-        #self.h = neuron.h
+        self.h = None
         
         self.tstop = tstop
         self.verbose = verbose
         
-        #self.ns = NeuronSimulation(tstop, dt)
+        self.ns = None
+        
         #print_("Initialised C302NRNSimulation of length %s ms and dt = %s ms..."%(tstop,dt))
 
+    def set_sim_dir(self, sim_dir):
+        self.sim_dir = sim_dir
+
     def set_timestep(self, dt):
+        sim_dir = os.environ["SIM_DIR"]
+        print(sim_dir)
+        print(sim_dir)
+        print(sim_dir)
+        print(sim_dir)
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "r") as in_file:
+            buf = in_file.readlines()
+
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "w") as out_file:
+            for line in buf:
+                if line == "    def __init__(self, tstop, dt, seed=123456789):\n":
+                    line = "    def addStimulus(self, sectionName, pressure):\n" + \
+                           "        print('############## LEMS received pressure')\n" + \
+                           "        section = getattr(h, sectionName)[0].soma\n" + \
+                           "        i = h.IClamp(section(0.5))\n" + \
+                           "        i.delay = self.current_time    # in ms\n" + \
+                           "        i.dur = self.dt   # in ms - set to dt\n" + \
+                           "        i.amp = 0.20     # in ?\n" + line
+                out_file.write(line)
+
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "r") as in_file:
+            buf = in_file.readlines()
+
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "w") as out_file:
+            for line in buf:
+                if line == "    def __init__(self, tstop, dt, seed=123456789):\n":
+                    line = line + "        self.h = h\n"
+                    line = line + "        self.dt = dt\n"
+                    line = line + "        self.current_time = 0\n"
+                out_file.write(line)
+
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "r") as in_file:
+            buf = in_file.readlines()
+
+        with open("%s/LEMS_c302_nrn.py"%sim_dir, "w") as out_file:
+            for line in buf:
+                if line == "    def advance(self):\n":
+                    line = line + "        self.current_time += self.dt\n"
+                out_file.write(line)
+
         dt = float('{:0.1e}'.format(dt)) * 1000.0 # memory issue fix
         from LEMS_c302_nrn import NeuronSimulation
         import neuron
