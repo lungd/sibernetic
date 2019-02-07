@@ -35,6 +35,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <iomanip>
+#include <list>
+#include <limits>
 
 #include "owPhysicsFluidSimulator.h"
 #include "owSignalSimulator.h"
@@ -315,23 +317,213 @@ int update_worm_motion_log_file(
  */
 void owPhysicsFluidSimulator::genShellPaticlesList() {
     // TODO: Only add particles from outer shell.
-    float p_type = -1;
+    /*float p_type = -1;
     for (size_t i = 0; i < config->getParticleCount(); ++i) {
         p_type = (float)position_cpp[4*i + 3];
-        if (p_type > 2 && p_type < 2.29) { // does not work with < 2.3?
+        if (p_type > 2.05 && p_type < 2.25) { // does not work with < 2.3?
             shellIndexes.push_back(i);
         }
-    }
+    }*/
     /*for (size_t i = 0; i < config->numOfElasticP; ++i) {
-    for (size_t j = 0; j < MAX_MEMBRANES_INCLUDING_SAME_PARTICLE; ++j) {
-      if (particleMembranesList_cpp[i * MAX_MEMBRANES_INCLUDING_SAME_PARTICLE +
-                                    j] != -1) {
-        shellIndexes.push_back(i);
-        break;
-      }
+        for (size_t j = 0; j < MAX_MEMBRANES_INCLUDING_SAME_PARTICLE; ++j) {
+            if (particleMembranesList_cpp[i * MAX_MEMBRANES_INCLUDING_SAME_PARTICLE + j] != -1) {
+                shellIndexes.push_back(i);
+                break;
+          }
+        }
+    }*/
+    std::list<int> shell_list;
+    for (int i = 0; i < config->numOfMembranes; i++) {
+        int p_a = membraneData_cpp[3*i + 0];
+        int p_b = membraneData_cpp[3*i + 1];
+        int p_c = membraneData_cpp[3*i + 2];
+        shell_list.push_back(p_a);
+        shell_list.push_back(p_b);
+        shell_list.push_back(p_c);
+        
     }
-  }*/
+    shell_list.sort();
+    //shell_list.sort( [&]( const int &a, const int &b ) { return (double)position_cpp[4*a + 2] < (double)position_cpp[4*b + 2]; } );
+    shell_list.unique();
+
+    for (std::list<int>::iterator it = shell_list.begin(); it != shell_list.end(); it++) {
+        shellIndexes.push_back(*it);
+    }
+    
+    owPhysicsFluidSimulator::genSectionList();
 }
+
+void owPhysicsFluidSimulator::genSectionList() {
+    
+    // shellIndexes need to be sorted by x
+    // float worm_xmin = position_cpp[4*shellIndexes[0] + 2];
+    // float worm_xmax = position_cpp[4*shellIndexes[shellIndexes.size()-1] + 2];
+    float worm_xmin = std::numeric_limits<float>::max();
+    float worm_xmax = -1;
+    float worm_ymin = std::numeric_limits<float>::max();
+    float worm_ymax = -1;
+    float worm_zmin = std::numeric_limits<float>::max();
+    float worm_zmax = -1;
+    for (int i = 0; i < shellIndexes.size(); i++) {
+        float p_x = position_cpp[4*shellIndexes[i] + 2];
+        float p_y = position_cpp[4*shellIndexes[i] + 1];
+        float p_z = position_cpp[4*shellIndexes[i] + 0];
+        if (p_x < worm_xmin) {
+            worm_xmin = p_x;
+        }
+        if (p_y < worm_ymin) {
+            worm_ymin = p_y;
+        }
+        if (p_z < worm_zmin) {
+            worm_zmin = p_z;
+        }
+    }
+    // TODO: merge loops
+    for (int i = 0; i < shellIndexes.size(); i++) {
+        float p_x = position_cpp[4*shellIndexes[i] + 2];
+        float p_y = position_cpp[4*shellIndexes[i] + 1];
+        float p_z = position_cpp[4*shellIndexes[i] + 0];
+        if (p_x > worm_xmax) {
+            worm_xmax = p_x;
+        }
+        if (p_y > worm_ymax) {
+            worm_ymax = p_y;
+        }
+        if (p_z > worm_zmax) {
+            worm_zmax = p_z;
+        }
+    }
+
+    float length = worm_xmax - worm_xmin;
+    float width = worm_ymax - worm_ymin;
+    float width_half = width / 2;
+    float height = worm_zmax - worm_zmin;
+    float height_half = height / 2;
+    int sectionNum = 5;
+    float sectionLength = length / ((float)sectionNum);
+
+    std::cout << "xmin: " << worm_xmin << std::endl;
+    std::cout << "xmax: " << worm_xmax << std::endl;
+    std::cout << "length: " << length << std::endl;
+    std::cout << "ymin: " << worm_ymin << std::endl;
+    std::cout << "ymax: " << worm_ymax << std::endl;
+    std::cout << "width: " << width << std::endl;
+    std::cout << "width_half: " << width_half << std::endl;
+    std::cout << "zmin: " << worm_zmin << std::endl;
+    std::cout << "zmax: " << worm_zmax << std::endl;
+    std::cout << "height: " << height << std::endl;
+    std::cout << "height_half: " << height_half << std::endl;
+        
+    for (int i = 0; i < sectionNum; i++) {
+        std::vector<size_t> particleIndices;
+        std::vector<size_t> particleIndicesLB;
+        std::vector<size_t> particleIndicesLT;
+        std::vector<size_t> particleIndicesRB;
+        std::vector<size_t> particleIndicesRT;
+        float section_xmin = worm_xmin + i*sectionLength;
+        float section_xmax = worm_xmin + (i+1)*sectionLength;
+
+        //l.push_back(section_x_min);
+        //l.push_back(section_x_max);
+        //sections.insert( make_pair ("Section"+i, l));
+
+        // TODO: dont iterate over all particles if sorted by x
+        for (int j = 0; j < shellIndexes.size(); j++) {
+            size_t p_id = shellIndexes[j];
+            
+            float p_x = position_cpp[4*p_id + 2];
+            float p_y = position_cpp[4*p_id + 1];
+            float p_z = position_cpp[4*p_id + 0];
+
+            /*// TODO: first particle in list != particle with smallest x
+            if ((j == 0 && p_x >= section_xmin && p_x <= section_xmax) 
+                        || (p_x > section_xmin && p_x <= section_xmax)) {
+                particleIndices.push_back(p_id);
+            }*/
+
+            /*if (i == 0) {
+                // tail
+                // TODO: first particle in list != particle with smallest x
+                if ((j == 0 && p_x >= section_xmin && p_x <= section_xmax) 
+                           || (p_x > section_xmin && p_x <= section_xmax))
+            } else if (i == sectionNum-1) {
+                // head
+                if (p_x > section_xmin && p_x <= section_xmax) {
+                }
+            }*/
+
+            
+            if (p_x > section_xmin && p_x <= section_xmax) {
+                if (p_y >= worm_ymin + width_half) {
+                    // left
+                    if (p_z <= worm_zmin + height_half) {
+                        // left bottom
+                        particleIndicesLB.push_back(p_id);
+                    } else {
+                        // left top
+                        particleIndicesLT.push_back(p_id);
+                    }
+                
+                } else {
+                    // right
+                    if (p_z <= worm_zmin + height_half) {
+                        // right bottom
+                        particleIndicesRB.push_back(p_id);
+                    } else {
+                        // right top
+                        particleIndicesRT.push_back(p_id);
+                    }
+                }
+            }
+        }
+
+        if (i == 0 || i == sectionNum-1) {
+            std::string sectionName;
+            if (i == 0) {
+                // tail
+                sectionName = "Tail";
+            } else {
+                // head
+                sectionName = "Head";
+            }
+            
+            particleIndices.insert(particleIndices.end(), particleIndicesLB.begin(), particleIndicesLB.end());
+            particleIndices.insert(particleIndices.end(), particleIndicesLT.begin(), particleIndicesLT.end());
+            particleIndices.insert(particleIndices.end(), particleIndicesRB.begin(), particleIndicesRB.end());
+            particleIndices.insert(particleIndices.end(), particleIndicesRT.begin(), particleIndicesRT.end());
+            std::sort(particleIndices.begin(), particleIndices.end());
+
+            sectionIndices[sectionName] = particleIndices;
+
+        } else {
+            sectionIndices["Body"+ std::to_string(i) + "LB"] = particleIndicesLB;
+            sectionIndices["Body"+ std::to_string(i) + "LT"] = particleIndicesLT;
+            sectionIndices["Body"+ std::to_string(i) + "RB"] = particleIndicesRB;
+            sectionIndices["Body"+ std::to_string(i) + "RT"] = particleIndicesRT;
+        }
+    }
+
+    
+}
+
+/*
+std::tuple<std::string, std::vector<float>> getSection(int p_id) {
+    float p_x = position_cpp[4*p_id + 2];
+    int i = 0;
+    for (std::map<std::string, std::vector<float>>::iterator it=sections.begin(); it!=sections.end(); ++it) {
+        std::string sectionName = it->first;
+        float sectionMin = it->second[0];
+        float sectionMax = it->second[1];
+        
+        if ((i == 0 && p_x >= sectionMin && p_x <= sectionMax) 
+                     || (p_x > sectionMin && p_x <= sectionMax)) {
+            return std::make_tuple(sectionName, {sectionMin, sectionMax});
+        }
+        i++;
+    }
+    return nullptr;
+}
+*/
 
 /** Run one simulation step
  *
@@ -447,12 +639,12 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to) {
       owHelper::loadConfigurationToFile(position_cpp, config,
                                         elasticConnectionsData_cpp,
                                         membraneData_cpp, true);
-      owHelper::loadPressureToFile(pressure_cpp, shellIndexes, position_cpp, iterationCount, config);
+      owHelper::loadPressureToFile(pressure_cpp, shellIndexes, sectionIndices, position_cpp, iterationCount, config);
     } else {
       if (iterationCount % config->getLogStep() == 0) {
         owHelper::loadConfigurationToFile(position_cpp, config, nullptr,
                                           nullptr, false);
-        owHelper::loadPressureToFile(pressure_cpp, shellIndexes, position_cpp, iterationCount, config);
+        owHelper::loadPressureToFile(pressure_cpp, shellIndexes, sectionIndices, position_cpp, iterationCount, config);
       }
     }
   }

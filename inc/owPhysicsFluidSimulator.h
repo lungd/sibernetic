@@ -131,6 +131,7 @@ class owPhysicsFluidSimulator
 	void reset();
 	void makeSnapshot();
 
+
   private:
 	owOpenCLSolver *ocl_solver;
 	float *position_cpp;			   // everywhere in the code %variableName%_cpp means that we create
@@ -142,6 +143,8 @@ class owPhysicsFluidSimulator
 	//Muscle contraction data buffer
 	float *muscle_activation_signal_cpp;
 	std::vector<size_t> shellIndexes;
+	//std::map<std::string, std::vector<float>> *sections;
+    std::map<std::string, std::vector<size_t>> sectionIndices;
 	//Helper arrays for displaying information about density changes
 	float *density_cpp;
 	unsigned int *particleIndex_cpp;
@@ -150,6 +153,6 @@ class owPhysicsFluidSimulator
 	int iterationCount;
 	void destroy();
 	void genShellPaticlesList();
+	void genSectionList();
 };
-
 #endif //OW_PHYSICS_SIMULATOR_H

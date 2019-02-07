@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <tuple>
+#include <map>
 
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <mach/mach.h>
@@ -45,6 +47,7 @@
 
 #include "owHelper.h"
 #include "owPhysicsConstant.h"
+#include "owPhysicsFluidSimulator.h"
 
 /** owHelpre class constructor
  */
@@ -476,6 +479,7 @@ void owHelper::loadConfigurationToFile(float *position,
 
 void owHelper::loadPressureToFile(float *pressure_buffer,
                                   std::vector<size_t> & shell_particles,
+                                  std::map<std::string, std::vector<size_t>> &sectionIndices,
                                   float *position_buffer,
                                   int iteration, owConfigProperty * config)
 {
@@ -509,59 +513,74 @@ void owHelper::loadPressureToFile(float *pressure_buffer,
   float x;
   float y;
   float z;
-  float p_type;
-  float p_pressure;
+  float type;
+  float pressure;
   bool writeIteration = true;
   bool received = false;
+  std::map<std::string, bool> updatedSections;
+  std::tuple<std::string, std::vector<float>> section;
+  std::string delem = "\t";
+
+    // init updatedSection map -> write name of section only once
+    for (std::map<std::string, std::vector<size_t>>::iterator it=sectionIndices.begin(); it!=sectionIndices.end(); ++it) {
+        updatedSections[it->first] = false;
+    }
+
+    for (std::map<std::string, std::vector<size_t>>::iterator it=sectionIndices.begin(); it!=sectionIndices.end(); ++it) {
+        std::string sectionName = it->first;
+        std::vector<size_t> p_id_list = it->second;
+        
+        // TODO: dont iterate over all
+        for (std::vector<size_t>::iterator p_it = p_id_list.begin() ; p_it != p_id_list.end(); ++p_it) {
+            size_t p_id = *p_it;
+            float p_x = position_buffer[p_id * 4 + 2];
+            float p_y = position_buffer[p_id * 4 + 1];
+            float p_z = position_buffer[p_id * 4 + 0];
+            float p_type = position_buffer[p_id * 4 + 3];
+            float p_pressure = pressure_buffer[p_id];
+
+            if (p_pressure >= threshold) {
+                if (writeIteration) {
+                    sectiontouchFile << "[Iteration " << iteration << "]\n";
+                    writeIteration = false;
+                }
+                if (!updatedSections[sectionName]) {
+                    sectiontouchFile << "[" << sectionName << "]\n";
+                    updatedSections[sectionName] = true;
+                }
+                // TODO: write as CSV (id,x,y,z,type,pressure)?
+                sectiontouchFile << p_id << delem 
+                                 << p_x << delem 
+                                 << p_y << delem 
+                                 << p_z << delem 
+                                 << p_type << delem 
+                                 << p_pressure << "\n";
+            }
+        }
+    }
 
   pressureFile << "[Iteration " << iteration << "]\n";
 
 
   for (int i = 0; i < shell_particles.size(); ++i) {
     id = shell_particles[i];
-    p_pressure = pressure_buffer[id];
+    
+    pressure = pressure_buffer[id];
 
     x = position_buffer[id * 4 + 0];
     y = position_buffer[id * 4 + 1];
     z = position_buffer[id * 4 + 2];
-    p_type = position_buffer[id * 4 + 3];
+    type = position_buffer[id * 4 + 3];
 
     pressureFile << "Particle:\t" << id << "\n";
     pressureFile << "\tPosition:\t";
     pressureFile << x << "\t"
                  << y << "\t"
                  << z << "\t"
-                 << p_type << "\n";
-    pressureFile << "\tPressure:\t" << p_pressure << "\n";
+                 << type << "\n";
+    pressureFile << "\tPressure:\t" << pressure << "\n";
 
-    if (p_pressure >= threshold) {
-        if (writeIteration) {
-            sectiontouchFile << "[Iteration " << iteration << "]\n";
-            writeIteration = false;
-        }
-        // TODO: std::string sectionName = getSectionName(id);
-        //       sectiontouchFile << "[ " << sectionName << "]\n";
-        //       'inform' SensoryManager.py - invoke sensoryManager.receivePressure(sectionName, p_pressure)
-        //       inside receivePressure load neuron list based on sectionName and change/add input to neurons based on p_pressure
-        if (!received) {
-            config->simulation->receivePressure(id, p_type, p_pressure);
-            received = true;
-        }
-        sectiontouchFile << id << "\t"
-                         << x << "\t" 
-                         << y << "\t" 
-                         << z << "\t" 
-                         << p_type << "\t" 
-                         << p_pressure << "\n";
-        
-        /*sectiontouchFile << "Particle:\t" << id << "\n";
-        sectiontouchFile << "\tPosition:\t";
-        sectiontouchFile << position_buffer[id * 4 + 0] << "\t"
-                     << position_buffer[id * 4 + 1] << "\t"
-                     << position_buffer[id * 4 + 2] << "\t"
-                     << position_buffer[id * 4 + 3] << "\n";
-        sectiontouchFile << "\tPressure:\t" << pressure_buffer[id] << "\n";*/
-    }
+  
   }
   pressureFile.close();
   sectiontouchFile.close();
